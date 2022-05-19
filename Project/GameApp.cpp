@@ -10,6 +10,7 @@
 //INCLUDE
 #include	"GameApp.h"
 #include	"Player.h"
+#include	"Stage.h"
 
 //カメラ
 CCamera					gCamera;
@@ -17,8 +18,16 @@ CCamera					gCamera;
 CDirectionalLight		gLight;
 //プレイヤー
 CPlayer					gPlayer;
+//ステージ
+CStage					gStage;
+
 //デバッグ表示フラグ
 bool					gbDebug = false;
+
+CVector3				gCameraPos;
+CVector3				gTaPos;
+CVector3				gUpPos;
+
 
 /*************************************************************************//*!
 		@brief			アプリケーションの初期化
@@ -33,22 +42,26 @@ MofBool CGameApp::Initialize(void){
 
 	//カメラ初期化
 	gCamera.SetViewPort();
-	gCamera.LookAt(Vector3(0, 6.0f, -17.0f), Vector3(0, 0, -10), Vector3(0, 1, 0));
+	gCamera.LookAt(Vector3(0, 6.0f, -17.0f), Vector3(0, 0, -10), Vector3(0, 1, 0));		//カメラのポジション
 	gCamera.PerspectiveFov(MOF_ToRadian(60.0f), 1024.0f / 768.0f, 0.01f, 1000.0f);
 	CGraphicsUtilities::SetCamera(&gCamera);
 
 	//ライト初期化
 	gLight.SetDirection(Vector3(-1, -2, 1.5f));
 	gLight.SetDiffuse(MOF_COLOR_WHITE);
-	gLight.SetAmbient(MOF_COLOR_WHITE);
+	gLight.SetAmbient(MOF_COLOR_HWHITE);
 	gLight.SetSpeculer(MOF_COLOR_WHITE);
 	CGraphicsUtilities::SetDirectionalLight(&gLight);
 
 	//プレイヤーの素材読み込み
 	gPlayer.Load();
+	//ステージの素材読み込み
+	gStage.Load();
 
 	//プレイヤーの状態初期化
 	gPlayer.Initialize();
+	//ステージの状態初期化
+	gStage.Initialize();
 
 	return TRUE;
 }
@@ -62,6 +75,8 @@ MofBool CGameApp::Initialize(void){
 MofBool CGameApp::Update(void){
 	//キーの更新
 	g_pInput->RefreshKey();
+	//ステージの更新
+	gStage.Update();
 	//プレイヤーの更新
 	gPlayer.Update();
 	//デバッグ表示の切り替え
@@ -72,11 +87,12 @@ MofBool CGameApp::Update(void){
 
 	//プレイヤーの動きにあわせてカメラを動かす
 	float posX = gPlayer.GetPosition().x * 0.4f;
-	CVector3 cpos = gCamera.GetViewPosition();
+	CVector3 cpos = gCamera.GetViewPosition();				//ターゲットのポジション
 	CVector3 tpos = gCamera.GetTargetPosition();
 	CVector3 vup = CVector3(0, 1, 0);
 	cpos.x = posX;
 	tpos.x = posX;
+	vup.RotationZ(gPlayer.GetPosition().x / FIELD_HALF_X * MOF_ToRadian(10.0f));
 	gCamera.LookAt(cpos, tpos, vup);
 	gCamera.Update();
 	return TRUE;
@@ -96,6 +112,9 @@ MofBool CGameApp::Render(void){
 	g_pGraphics->ClearTarget(0.65f,0.65f,0.67f,0.0f,1.0f,0);
 	//深度バッファ有効化
 	g_pGraphics->SetDepthEnable(TRUE);
+
+	//ステージ描画
+	gStage.Render();
 
 	//プレイヤー描画
 	gPlayer.Render();
@@ -132,5 +151,6 @@ MofBool CGameApp::Render(void){
 *//**************************************************************************/
 MofBool CGameApp::Release(void){
 	gPlayer.Release();
+	gStage.Release();
 	return TRUE;
 }
